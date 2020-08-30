@@ -88,16 +88,16 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
     const auto theta0{particle.theta};
 
     // Different formulas are used if we are driving straight and changing steering angle
-    if(std::fabs(yaw_rate) > 0.0001)
+    if(std::fabs(yaw_rate) > 0.001)
     {
       const double yaw_change{yaw_rate * delta_t};
       const double vel_div_theta_dot{(velocity / yaw_rate)};
 
       // xf​=x0​ + v/θ˙​ * [sin(θ0​+θ˙(dt)) − sin(θ0​)]
-      particle.x = x0 + (vel_div_theta_dot * (std::sin(theta0 + yaw_change) - std::sin(yaw_rate)));
+      particle.x = x0 + (vel_div_theta_dot * (std::sin(theta0 + yaw_change) - std::sin(theta0)));
 
       // yf​=y0​ + v​/θ˙ * [cos(θ0​) − cos(θ0​+θ˙(dt))]
-      particle.y = y0 + (vel_div_theta_dot * (std::cos(yaw_rate)) - std::cos(theta0 + yaw_change));
+      particle.y = y0 + (vel_div_theta_dot * (std::cos(theta0)) - std::cos(theta0 + yaw_change));
 
       // θf​=θ0​+θ˙(dt)
       particle.theta = theta0 + yaw_change;
@@ -193,11 +193,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
       // transform to map x coordinate
       // xm​=xp​+(cosθ×xc​)−(sinθ×yc​)
-      const double x_map = x_particle + (std::cos(theta_particle) * x_obervation) - (sin(theta_particle) * y_obervation);
+      const double x_map = x_particle + (std::cos(theta_particle) * x_obervation) - (std::sin(theta_particle) * y_obervation);
 
       // transform to map y coordinate
       // ym​=yp​+(sinθ×xc​)+(cosθ×yc​)
-      const double y_map = y_particle + (sin(theta_particle) * x_obervation) + (cos(theta_particle) * y_obervation);
+      const double y_map = y_particle + (std::sin(theta_particle) * x_obervation) + (std::cos(theta_particle) * y_obervation);
 
       double min_distance{std::numeric_limits<double>::max()};
       LandmarkObs closest_landmark;
