@@ -163,7 +163,59 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
 
+  // Observation vehicle frame transformation to map frame according to each particle
+  for(auto& particle : particles)
+  {
+    const double x_particle{x_particle};
+    const double y_particle{x_particle};
 
+    std::vector<LandmarkObs> landmarks_in_range;
+    for (const auto map_landmark : map_landmarks.landmark_list)
+    {
+      const double dist_to_landmark = dist(x_particle, y_particle, map_landmark.x_f, map_landmark.y_f);
+
+      if (dist_to_landmark < sensor_range)
+      {
+        landmarks_in_range.push_back(LandmarkObs{map_landmark.id_i, map_landmark.x_f, map_landmark.y_f});
+      }
+    }
+
+    double weight{1.0};
+
+    for (const auto observation: observations)
+    {
+      std::vector<LandmarkObs> transformed_landmarks;
+
+      const double theta_particle{x_particle};
+      const double x_obervation{observation.x};
+      const double y_obervation{observation.y};
+
+      // transform to map x coordinate
+      // xm​=xp​+(cosθ×xc​)−(sinθ×yc​)
+      const double x_map = x_particle + (std::cos(theta_particle) * x_obervation) - (sin(theta_particle) * y_obervation);
+
+      // transform to map y coordinate
+      // ym​=yp​+(sinθ×xc​)+(cosθ×yc​)
+      const double y_map = y_particle + (sin(theta_particle) * x_obervation) + (cos(theta_particle) * y_obervation);
+
+      double min_distance{std::numeric_limits<double>::infinity()};
+      int closest_landmark_index;
+      for(auto i = 0; landmarks_in_range.size(); ++i)
+      {
+        const double distance = dist(observation.x, observation.y, landmarks_in_range[i].x, landmarks_in_range[i].y);
+
+        if (distance < min_distance)
+        {
+          closest_landmark_index = i;
+        }
+      }
+
+      const auto closet_landmark = landmarks_in_range[closest_landmark_index];
+      weight *= multiv_prob(std_landmark[0], std_landmark[1], x_map, y_map, closet_landmark.x, closet_landmark.y);
+    }
+
+    particle.weight = weight;
+  }
 }
 
 void ParticleFilter::resample() {
