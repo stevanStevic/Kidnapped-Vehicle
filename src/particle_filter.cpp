@@ -50,6 +50,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     const double sample_x = dist_x(gen);
     const double sample_y = dist_y(gen);
     const double sample_theta = dist_theta(gen);
+
     const double weight{1.0};
 
     Particle particle{i, sample_x, sample_y, sample_theta, weight};
@@ -129,7 +130,20 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
    *   probably find it useful to implement this method and use it as a helper
    *   during the updateWeights phase.
    */
+  for(auto& observation : observations)
+  {
+    double min_distance{std::numeric_limits<double>::infinity()};
 
+    for(const auto landmark : predicted)
+    {
+      const double distance = dist(observation.x, observation.y, landmark.x, landmark.y);
+
+      if (distance < min_distance)
+      {
+        observation = landmark;
+      }
+    }
+  }
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
@@ -148,6 +162,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   and the following is a good resource for the actual equation to implement
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
+
 
 }
 
