@@ -56,6 +56,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     Particle particle{i, sample_x, sample_y, sample_theta, weight};
     particles.push_back(particle);
   }
+
+  is_initialized = true;
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[],
@@ -114,8 +116,8 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
       // Nothing to be done, theta stays the same
     }
 
-    particle.x = dist_x(gen);
-    particle.y = dist_y(gen);
+    particle.x += dist_x(gen);
+    particle.y += dist_y(gen);
     particle.theta +=  dist_theta(gen);
   }
 }
@@ -134,7 +136,7 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
   {
     double min_distance{std::numeric_limits<double>::infinity()};
 
-    for(const auto landmark : predicted)
+    for(const auto& landmark : predicted)
     {
       const double distance = dist(observation.x, observation.y, landmark.x, landmark.y);
 
@@ -163,14 +165,15 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
 
-  // Observation vehicle frame transformation to map frame according to each particle
+  //Observation vehicle frame transformation to map frame according to each particle
   for(auto& particle : particles)
   {
-    const double x_particle{x_particle};
-    const double y_particle{x_particle};
+    double weight{1.0};
+    const double x_particle{particle.x};
+    const double y_particle{particle.y};
 
     std::vector<LandmarkObs> landmarks_in_range;
-    for (const auto map_landmark : map_landmarks.landmark_list)
+    for (const auto& map_landmark : map_landmarks.landmark_list)
     {
       const double dist_to_landmark = dist(x_particle, y_particle, map_landmark.x_f, map_landmark.y_f);
 
@@ -180,13 +183,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       }
     }
 
-    double weight{1.0};
-
-    for (const auto observation: observations)
+    for (const auto& observation: observations)
     {
       std::vector<LandmarkObs> transformed_landmarks;
 
-      const double theta_particle{x_particle};
+      const double theta_particle{particle.theta};
       const double x_obervation{observation.x};
       const double y_obervation{observation.y};
 
@@ -198,20 +199,21 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       // ym​=yp​+(sinθ×xc​)+(cosθ×yc​)
       const double y_map = y_particle + (sin(theta_particle) * x_obervation) + (cos(theta_particle) * y_obervation);
 
-      double min_distance{std::numeric_limits<double>::infinity()};
-      int closest_landmark_index;
-      for(auto i = 0; landmarks_in_range.size(); ++i)
+      double min_distance{std::numeric_limits<double>::max()};
+      LandmarkObs closest_landmark;
+      for(const auto& landmark : landmarks_in_range)
       {
-        const double distance = dist(observation.x, observation.y, landmarks_in_range[i].x, landmarks_in_range[i].y);
+        const double distance = dist(observation.x, observation.y, landmark.x, landmark.y);
 
         if (distance < min_distance)
         {
-          closest_landmark_index = i;
+          min_distance = distance;
+          closest_landmark = landmark;
         }
       }
 
-      const auto closet_landmark = landmarks_in_range[closest_landmark_index];
-      weight *= multiv_prob(std_landmark[0], std_landmark[1], x_map, y_map, closet_landmark.x, closet_landmark.y);
+      // const auto closet_landmark = landmarks_in_range[closest_landmark_index];
+      weight *= multiv_prob(std_landmark[0], std_landmark[1], x_map, y_map, closest_landmark.x, closest_landmark.y);
     }
 
     particle.weight = weight;
