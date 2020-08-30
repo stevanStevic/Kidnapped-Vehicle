@@ -66,7 +66,57 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    */
+  // Get standard deviations for Gaussian (Normal) distribution
+  const double std_dev_x = std_pos[0];
+  const double std_dev_y = std_pos[1];
+  const double std_dev_theta = std_pos[2];
 
+  std::default_random_engine gen;
+
+  // This line creates a normal (Gaussian) distribution for x, y, theta
+  std::normal_distribution<double> dist_x(0.0, std_dev_x);
+  std::normal_distribution<double> dist_y(0.0, std_dev_y);
+  std::normal_distribution<double> dist_theta(0.0, std_dev_theta);
+
+  for(auto& particle : particles)
+  {
+    const auto x0{particle.x};
+    const auto y0{particle.y};
+    const auto theta0{particle.theta};
+
+    // Different formulas are used if we are driving straight and changing steering angle
+    if(std::fabs(yaw_rate) > 0.0001)
+    {
+      const double yaw_change{yaw_rate * delta_t};
+      const double vel_div_theta_dot{(velocity / yaw_rate)};
+
+      // xf​=x0​ + v/θ˙​ * [sin(θ0​+θ˙(dt)) − sin(θ0​)]
+      particle.x = x0 + (vel_div_theta_dot * (std::sin(theta0 + yaw_change) - std::sin(yaw_rate)));
+
+      // yf​=y0​ + v​/θ˙ * [cos(θ0​) − cos(θ0​+θ˙(dt))]
+      particle.y = y0 + (vel_div_theta_dot * (std::cos(yaw_rate)) - std::cos(theta0 + yaw_change));
+
+      // θf​=θ0​+θ˙(dt)
+      particle.theta = theta0 + yaw_change;
+    }
+    else
+    {
+      const double displacment{velocity * delta_t};
+
+      // xf = x0 + v*dt cos(θ0​)
+      particle.x = x0 + (displacment * std::cos(theta0));
+
+      // yf​ = y0​ + v*dt * sin(θ0​)
+      particle.y = y0 + (displacment * std::sin(theta0));
+
+      // θf​= θ0
+      // Nothing to be done, theta stays the same
+    }
+
+    particle.x = dist_x(gen);
+    particle.y = dist_y(gen);
+    particle.theta +=  dist_theta(gen);
+  }
 }
 
 void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
