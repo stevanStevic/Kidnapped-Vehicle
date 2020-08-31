@@ -91,13 +91,13 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
     if(std::fabs(yaw_rate) > 0.001)
     {
       const double yaw_change{yaw_rate * delta_t};
-      const double vel_div_theta_dot{(velocity / yaw_rate)};
+      const double vel_div_theta_dot{velocity / yaw_rate};
 
       // xf​=x0​ + v/θ˙​ * [sin(θ0​+θ˙(dt)) − sin(θ0​)]
       particle.x = x0 + (vel_div_theta_dot * (std::sin(theta0 + yaw_change) - std::sin(theta0)));
 
       // yf​=y0​ + v​/θ˙ * [cos(θ0​) − cos(θ0​+θ˙(dt))]
-      particle.y = y0 + (vel_div_theta_dot * (std::cos(theta0)) - std::cos(theta0 + yaw_change));
+      particle.y = y0 + (vel_div_theta_dot * (std::cos(theta0) - std::cos(theta0 + yaw_change)));
 
       // θf​=θ0​+θ˙(dt)
       particle.theta = theta0 + yaw_change;
