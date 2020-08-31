@@ -138,7 +138,7 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
 
     for(const auto& landmark : predicted)
     {
-      const double distance = dist(observation.x, observation.y, landmark.x, landmark.y);
+    const double distance = dist(x_obs_in_map, y_obs_in_map, landmark.x, landmark.y);
 
       if (distance < min_distance)
       {
