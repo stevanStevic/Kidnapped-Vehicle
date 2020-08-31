@@ -95,6 +95,9 @@ class ParticleFilter {
                        const std::vector<double>& sense_x,
                        const std::vector<double>& sense_y);
 
+  std::vector<LandmarkObs> GetLandmarksInRange(
+    const Particle& particle, const Map& map_landmarks, double sensor_range) const;
+
   /**
    * initialized Returns whether particle filter is initialized yet or not.
    */

@@ -148,6 +148,23 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
   }
 }
 
+std::vector<LandmarkObs> ParticleFilter::GetLandmarksInRange(const Particle& particle, const Map& map_landmarks, double sensor_range) const
+{
+  std::vector<LandmarkObs> landmarks_in_range;
+
+  for(const auto& map_landmark : map_landmarks.landmark_list)
+  {
+    const double dist_to_landmark = dist(particle.x, particle.y, map_landmark.x_f, map_landmark.y_f);
+
+    if (dist_to_landmark < sensor_range)
+    {
+      landmarks_in_range.push_back(LandmarkObs{map_landmark.id_i, map_landmark.x_f, map_landmark.y_f});
+    }
+  }
+
+  return landmarks_in_range;
+}
+
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
                                    const vector<LandmarkObs> &observations,
                                    const Map &map_landmarks) {
@@ -172,16 +189,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     const double x_particle{particle.x};
     const double y_particle{particle.y};
 
-    std::vector<LandmarkObs> landmarks_in_range;
-    for (const auto& map_landmark : map_landmarks.landmark_list)
-    {
-      const double dist_to_landmark = dist(x_particle, y_particle, map_landmark.x_f, map_landmark.y_f);
-
-      if (dist_to_landmark < sensor_range)
-      {
-        landmarks_in_range.push_back(LandmarkObs{map_landmark.id_i, map_landmark.x_f, map_landmark.y_f});
-      }
-    }
+    std::vector<LandmarkObs> landmarks_in_range = GetLandmarksInRange(particle, map_landmarks, sensor_range);
 
     for (const auto& observation: observations)
     {
