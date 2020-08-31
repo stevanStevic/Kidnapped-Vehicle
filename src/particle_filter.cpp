@@ -88,6 +88,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
     const auto theta0{particle.theta};
 
     // Different formulas are used if we are driving straight and changing steering angle
+    // using bicycle motion model
     if(std::fabs(yaw_rate) > 0.001)
     {
       const double yaw_change{yaw_rate * delta_t};
@@ -122,30 +123,25 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
   }
 }
 
-void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
-                                     vector<LandmarkObs>& observations) {
-  /**
-   * TODO: Find the predicted measurement that is closest to each
-   *   observed measurement and assign the observed measurement to this
-   *   particular landmark.
-   * NOTE: this method will NOT be called by the grading code. But you will
-   *   probably find it useful to implement this method and use it as a helper
-   *   during the updateWeights phase.
-   */
-  for(auto& observation : observations)
-  {
-    double min_distance{std::numeric_limits<double>::infinity()};
+LandmarkObs ParticleFilter::AssociatateLandmark(const vector<LandmarkObs>& landmarks_in_range,
+                                                       const double x_obs_in_map,
+                                                       const double y_obs_in_map) const
+{
+  double min_distance{std::numeric_limits<double>::max()};
+  LandmarkObs nearest_landmark;
 
-    for(const auto& landmark : predicted)
-    {
+  for(const auto& landmark : landmarks_in_range)
+  {
     const double distance = dist(x_obs_in_map, y_obs_in_map, landmark.x, landmark.y);
 
-      if (distance < min_distance)
-      {
-        observation = landmark;
-      }
+    if (distance < min_distance)
+    {
+      min_distance = distance;
+      nearest_landmark = landmark;
     }
   }
+
+  return nearest_landmark;
 }
 
 std::vector<LandmarkObs> ParticleFilter::GetLandmarksInRange(const Particle& particle, const Map& map_landmarks, double sensor_range) const
@@ -188,14 +184,12 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     double weight{1.0};
     const double x_particle{particle.x};
     const double y_particle{particle.y};
+    const double theta_particle{particle.theta};
 
     std::vector<LandmarkObs> landmarks_in_range = GetLandmarksInRange(particle, map_landmarks, sensor_range);
 
     for (const auto& observation: observations)
     {
-      std::vector<LandmarkObs> transformed_landmarks;
-
-      const double theta_particle{particle.theta};
       const double x_obervation{observation.x};
       const double y_obervation{observation.y};
 
@@ -207,24 +201,12 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       // ym​=yp​+(sinθ×xc​)+(cosθ×yc​)
       const double y_map = y_particle + (std::sin(theta_particle) * x_obervation) + (std::cos(theta_particle) * y_obervation);
 
-      double min_distance{std::numeric_limits<double>::max()};
-      LandmarkObs closest_landmark;
-      for(const auto& landmark : landmarks_in_range)
-      {
-        const double distance = dist(observation.x, observation.y, landmark.x, landmark.y);
+      const auto& nearest_landmark = AssociatateLandmark(landmarks_in_range, x_map, y_map);
 
-        if (distance < min_distance)
-        {
-          min_distance = distance;
-          closest_landmark = landmark;
-        }
-      }
-
-      // const auto closet_landmark = landmarks_in_range[closest_landmark_index];
-      weight *= multiv_prob(std_landmark[0], std_landmark[1], x_map, y_map, closest_landmark.x, closest_landmark.y);
+      weight *= multiv_prob(std_landmark[0], std_landmark[1], x_map, y_map, nearest_landmark.x, nearest_landmark.y);
     }
 
-    particle.weight = weight;
+    particle.weight = weight; // Update the probabilty weight of the given particle
   }
 }
 
@@ -258,7 +240,8 @@ void ParticleFilter::resample() {
 void ParticleFilter::SetAssociations(Particle& particle,
                                      const vector<int>& associations,
                                      const vector<double>& sense_x,
-                                     const vector<double>& sense_y) {
+                                     const vector<double>& sense_y)
+{
   // particle: the particle to which assign each listed association,
   //   and association's (x,y) world coordinates mapping
   // associations: The landmark id that goes along with each listed association

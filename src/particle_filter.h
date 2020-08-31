@@ -58,13 +58,15 @@ class ParticleFilter {
                   double yaw_rate);
 
   /**
-   * dataAssociation Finds which observations correspond to which landmarks
-   *   (likely by using a nearest-neighbors data association).
-   * @param predicted Vector of predicted landmark observations
-   * @param observations Vector of landmark observations
+   * Find nearest landmark from a map for given obesrvation in map (world) coordinates.
+   *
+   * @param landmarks_in_range Vector of landmarks that could be observed by sensor range
+   * @param x_obs_in_map Transformed x in world coordinates for given observation
+   * @param y_obs_in_map Transformed y in world coordinates for given observation
    */
-  void dataAssociation(std::vector<LandmarkObs> predicted,
-                       std::vector<LandmarkObs>& observations);
+  LandmarkObs AssociatateLandmark(const std::vector<LandmarkObs>& landmarks_in_range,
+                                  const double x_obs_in_map,
+                                  const double y_obs_in_map) const;
 
   /**
    * updateWeights Updates the weights for each particle based on the likelihood
@@ -95,6 +97,14 @@ class ParticleFilter {
                        const std::vector<double>& sense_x,
                        const std::vector<double>& sense_y);
 
+  /**
+   * Find landmark from a map that actually could be observed based on sensor range.
+   * This helps reducing computational costs.
+   *
+   * @param particle Particle currently processed
+   * @param map_landmarks Map with all landmarks
+   * @param sensor_range Distance range of the sensor
+   */
   std::vector<LandmarkObs> GetLandmarksInRange(
     const Particle& particle, const Map& map_landmarks, double sensor_range) const;
 
